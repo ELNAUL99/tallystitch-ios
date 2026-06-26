@@ -1,0 +1,21 @@
+# Secrets — never commit
+Tallystitch/Config/Secrets.xcconfig
+
+# Xcode / generated project (XcodeGen regenerates it from project.yml)
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+build/
+.build/
+*.xcuserstate
+
+# SwiftPM
+.swiftpm/
+Packages/*/.build/
+
+# macOS
+.DS_Store
+
+# Claude Code local settings/permission cache — may contain pasted secrets.
+.claude/

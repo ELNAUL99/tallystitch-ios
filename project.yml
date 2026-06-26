@@ -1,0 +1,55 @@
+# XcodeGen project definition.
+#
+# Why XcodeGen instead of a checked-in .xcodeproj: the .xcodeproj is a giant
+# auto-generated XML bundle that's painful to edit and merge. This declarative
+# project.yml is the source of truth; running `xcodegen generate` produces the
+# .xcodeproj from it. That keeps the project diffable and lets an agent (or a
+# script) manage it as text.
+#
+# Generate with:   brew install xcodegen && xcodegen generate
+# Then open:       open Tallystitch.xcodeproj
+
+name: Tallystitch
+options:
+  bundleIdPrefix: com.tallystitch
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+packages:
+  TallystitchCore:
+    path: Packages/TallystitchCore
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: "2.0.0"
+
+targets:
+  Tallystitch:
+    type: application
+    platform: iOS
+    sources:
+      - path: Tallystitch
+    dependencies:
+      - package: TallystitchCore
+      - package: Supabase
+        product: Supabase
+    settings:
+      base:
+        INFOPLIST_FILE: Tallystitch/App/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.tallystitch.app
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.7"
+        TARGETED_DEVICE_FAMILY: "1"   # iPhone
+        ENABLE_USER_SCRIPT_SANDBOXING: "YES"
+        GENERATE_INFOPLIST_FILE: "NO"
+      configs:
+        # Secrets.xcconfig injects SUPABASE_URL / SUPABASE_ANON_KEY into the
+        # build so they reach Info.plist without being committed.
+        debug:
+          INCLUDED_SOURCE_FILE_NAMES: ""
+    configFiles:
+      Debug: Tallystitch/Config/Secrets.xcconfig
+      Release: Tallystitch/Config/Secrets.xcconfig
+    info:
+      path: Tallystitch/App/Info.plist
