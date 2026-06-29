@@ -52,4 +52,22 @@ targets:
       Debug: Tallystitch/Config/Secrets.xcconfig
       Release: Tallystitch/Config/Secrets.xcconfig
     info:
+      # XcodeGen regenerates this Info.plist from the properties below on every
+      # `xcodegen generate`. Keep custom keys HERE (not only in the .plist) — a
+      # property listed only in the file gets wiped on the next generate. The
+      # SUPABASE_* values resolve from Secrets.xcconfig at build time; the URL
+      # scheme is what lets magic-link / recovery deep links reopen the app.
       path: Tallystitch/App/Info.plist
+      properties:
+        CFBundleDisplayName: Tallystitch
+        LSRequiresIPhoneOS: true
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        SUPABASE_URL: $(SUPABASE_URL)
+        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+        CFBundleURLTypes:
+          - CFBundleURLName: com.tallystitch.app
+            CFBundleURLSchemes:
+              - tallystitch
