@@ -32,6 +32,14 @@ struct RootView: View {
         .fullScreenCover(isPresented: $auth.passwordRecovery) {
             SetNewPasswordView()
         }
+        // Surface a failed sign-in / recovery link instead of stranding the user.
+        .alert("Couldn't sign you in",
+               isPresented: Binding(get: { auth.linkError != nil },
+                                    set: { if !$0 { auth.linkError = nil } })) {
+            Button("OK", role: .cancel) { auth.linkError = nil }
+        } message: {
+            Text(auth.linkError ?? "")
+        }
         // Refetch the profile whenever the signed-in user changes.
         .task(id: auth.session?.user.id) {
             if auth.isSignedIn { await profile.refresh() } else { profile.clear() }

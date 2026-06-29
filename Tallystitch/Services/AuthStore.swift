@@ -13,6 +13,10 @@ final class AuthStore: ObservableObject {
     // must choose a new password before using the app. RootView presents the
     // set-new-password screen over everything while this is true.
     @Published var passwordRecovery = false
+    // Set when an incoming sign-in / recovery link can't be completed (expired
+    // or already used). RootView surfaces it as an alert so the user isn't left
+    // stranded on the login screen wondering why nothing happened.
+    @Published var linkError: String?
 
     private var authTask: Task<Void, Never>?
 
@@ -80,6 +84,20 @@ final class AuthStore: ObservableObject {
     func updatePassword(_ newPassword: String) async throws {
         _ = try await supabase.auth.update(user: UserAttributes(password: newPassword))
         passwordRecovery = false
+    }
+
+    // MARK: - Deep links
+
+    // Completes a magic-link / recovery / confirm link by trading the code in
+    // the URL for a session. On success the authStateChanges stream flips the
+    // session (and `passwordRecovery` for recovery links); on failure we report
+    // a friendly message instead of silently doing nothing.
+    func handleDeepLink(_ url: URL) async {
+        do {
+            try await supabase.auth.session(from: url)
+        } catch {
+            linkError = "That sign-in link has expired or was already used. Request a new one and try again."
+        }
     }
 
     func signOut() async {

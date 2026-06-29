@@ -15,7 +15,7 @@ struct TallystitchApp: App {
                 .environmentObject(profile)
                 .tint(Palette.clay600)
                 .onOpenURL { url in
-                    Task { await DeepLink.handle(url) }
+                    Task { await auth.handleDeepLink(url) }
                 }
         }
     }

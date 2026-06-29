@@ -43,11 +43,8 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"   # iPhone
         ENABLE_USER_SCRIPT_SANDBOXING: "YES"
         GENERATE_INFOPLIST_FILE: "NO"
-      configs:
-        # Secrets.xcconfig injects SUPABASE_URL / SUPABASE_ANON_KEY into the
-        # build so they reach Info.plist without being committed.
-        debug:
-          INCLUDED_SOURCE_FILE_NAMES: ""
+    # Secrets.xcconfig injects SUPABASE_URL / SUPABASE_ANON_KEY into the build
+    # so they reach Info.plist without being committed.
     configFiles:
       Debug: Tallystitch/Config/Secrets.xcconfig
       Release: Tallystitch/Config/Secrets.xcconfig
