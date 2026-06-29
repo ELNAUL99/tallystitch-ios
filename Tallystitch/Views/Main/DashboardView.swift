@@ -6,7 +6,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var revenue = 0.0
     @Published var cogs = 0.0
     @Published var byProduct: [ProductAgg] = []
-    @Published var lowStock: [Material] = []
+    @Published var lowStock: [TallystitchCore.Material] = []
     @Published var loaded = false
     @Published var error: String?
 
@@ -21,7 +21,7 @@ final class DashboardViewModel: ObservableObject {
                 .select("id, source, external_order_id, order_date, gross_amount, order_items(quantity, unit_sale_price, products(name))")
                 .gte("order_date", value: since)
                 .execute().value
-            async let materials: [Material] = supabase
+            async let materials: [TallystitchCore.Material] = supabase
                 .from("materials").select().order("stock_on_hand", ascending: true).execute().value
 
             let (ordersResult, materialsResult) = try await (orders, materials)

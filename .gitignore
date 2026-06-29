@@ -19,3 +19,4 @@ Packages/*/.build/
 
 # Claude Code local settings/permission cache — may contain pasted secrets.
 .claude/
+build.log

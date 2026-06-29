@@ -3,7 +3,7 @@ import TallystitchCore
 
 struct MaterialsListView: View {
     @EnvironmentObject var profile: ProfileStore
-    @State private var materials: [Material] = []
+    @State private var materials: [TallystitchCore.Material] = []
     @State private var loaded = false
     @State private var error: String?
 
@@ -48,7 +48,7 @@ struct MaterialsListView: View {
 }
 
 struct MaterialRow: View {
-    let material: Material
+    let material: TallystitchCore.Material
     let currency: String
     var body: some View {
         HStack {
@@ -75,7 +75,7 @@ struct MaterialRow: View {
 struct MaterialFormView: View {
     @EnvironmentObject var profile: ProfileStore
     @Environment(\.dismiss) private var dismiss
-    var existing: Material?
+    var existing: TallystitchCore.Material?
 
     @State private var name = ""
     @State private var unit = "piece"
@@ -111,7 +111,7 @@ struct MaterialFormView: View {
         guard let m = existing else { return }
         name = m.name; unit = m.unit
         cost = String(m.costPerUnit); stock = String(m.stockOnHand)
-        lowThreshold = m.lowStockThreshold.map(String.init) ?? ""
+        lowThreshold = m.lowStockThreshold.map { String($0) } ?? ""
     }
 
     private func save() async {

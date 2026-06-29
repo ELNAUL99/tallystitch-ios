@@ -13,7 +13,7 @@ struct ProductFormView: View {
     @State private var sku = ""
     @State private var salePrice = ""
     @State private var rows: [RecipeRowState] = []
-    @State private var materials: [Material] = []
+    @State private var materials: [TallystitchCore.Material] = []
     @State private var ready = false
     @State private var busy = false
     @State private var error: String?
@@ -24,7 +24,7 @@ struct ProductFormView: View {
         var quantity: String = ""
     }
 
-    private var materialsById: [String: Material] {
+    private var materialsById: [String: TallystitchCore.Material] {
         Dictionary(uniqueKeysWithValues: materials.map { ($0.id, $0) })
     }
 
@@ -118,7 +118,7 @@ struct ProductFormView: View {
         do {
             materials = try await MaterialsService.list()
             if let p = existing {
-                name = p.name; sku = p.sku ?? ""; salePrice = p.salePrice.map(String.init) ?? ""
+                name = p.name; sku = p.sku ?? ""; salePrice = p.salePrice.map { String($0) } ?? ""
                 let recipe = try await ProductsService.recipe(productId: p.id)
                 rows = recipe.map { RecipeRowState(materialId: $0.materialId, quantity: String($0.quantity)) }
             }
@@ -158,7 +158,7 @@ struct ProductFormView: View {
 
 struct RecipeRowEditor: View {
     @Binding var row: ProductFormView.RecipeRowState
-    let materials: [Material]
+    let materials: [TallystitchCore.Material]
     let currency: String
     let onRemove: () -> Void
 

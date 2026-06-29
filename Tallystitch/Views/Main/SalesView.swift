@@ -172,7 +172,7 @@ struct SaleFormView: View {
         do {
             products = try await SalesService.productsForPicker()
             if let first = products.first {
-                lines = [LineState(productId: first.id, quantity: "1", price: first.salePrice.map(String.init) ?? "")]
+                lines = [LineState(productId: first.id, quantity: "1", price: first.salePrice.map { String($0) } ?? "")]
             }
         } catch { self.error = error.localizedDescription }
         ready = true

@@ -27,6 +27,11 @@ struct RootView: View {
                 MainTabView()
             }
         }
+        // A recovery deep link lands the user in a session but must set a new
+        // password first — show that over whatever's underneath.
+        .fullScreenCover(isPresented: $auth.passwordRecovery) {
+            SetNewPasswordView()
+        }
         // Refetch the profile whenever the signed-in user changes.
         .task(id: auth.session?.user.id) {
             if auth.isSignedIn { await profile.refresh() } else { profile.clear() }
