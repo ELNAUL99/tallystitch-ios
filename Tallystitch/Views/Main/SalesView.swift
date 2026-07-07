@@ -26,6 +26,10 @@ struct SalesListView: View {
                         VStack(spacing: 0) {
                             ForEach(sales) { sale in
                                 SaleRowView(sale: sale, currency: profile.currency)
+                                    // Deleting a sale isn't just removing a row: the DB's
+                                    // AFTER DELETE trigger on order_items adds the deducted
+                                    // materials back to stock, so this is a real inventory
+                                    // reversal handled server-side (see SalesService.delete).
                                     .swipeActions {
                                         Button("Delete", role: .destructive) { Task { await delete(sale) } }
                                     }
@@ -59,6 +63,8 @@ struct SalesListView: View {
 struct SaleRowView: View {
     let sale: SalesService.SaleRow
     let currency: String
+    // Prefer the stored gross_amount; fall back to summing the line items for
+    // any order that predates gross being recorded.
     private var revenue: Double {
         sale.grossAmount ?? sale.orderItems.reduce(0) { $0 + $1.quantity * $1.unitSalePrice }
     }
@@ -66,6 +72,8 @@ struct SaleRowView: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(sale.orderDate.formatted(date: .abbreviated, time: .omitted)).font(.body.weight(.medium))
+                // The nested order_items projection has no id we decode, so index
+                // is the stable identity within a single row's item list.
                 ForEach(Array(sale.orderItems.enumerated()), id: \.offset) { _, it in
                     Text("\(Formatting.qty(it.quantity)) × \(it.products?.name ?? "Unknown")")
                         .font(.subheadline).foregroundStyle(Palette.ink700)

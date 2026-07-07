@@ -28,6 +28,9 @@ struct ProductFormView: View {
         Dictionary(uniqueKeysWithValues: materials.map { ($0.id, $0) })
     }
 
+    // These are computed (not @State), so unit cost / profit / margin recompute
+    // on every keystroke as the recipe or price changes — that live feedback is
+    // the point of this screen. No save round-trip needed to see the numbers.
     private var unitCost: Double {
         rows.reduce(0) { total, row in
             guard let m = materialsById[row.materialId], let q = Double(row.quantity) else { return total }
