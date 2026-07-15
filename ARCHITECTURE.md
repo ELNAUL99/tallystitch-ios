@@ -36,6 +36,49 @@ and physically can't drift apart on the rules that matter.
 
 ---
 
+## Which architecture pattern — and why
+
+**Chosen: pragmatic MVVM over a Clean-*inspired* layering, with a pure domain
+core.** Not textbook Clean Architecture, and not VIPER. Here's the honest
+mapping and the reasoning:
+
+**MVVM — yes, but only where it earns its keep.** `DashboardViewModel` is a
+real ViewModel: it aggregates orders into revenue/low-stock, which is logic
+worth extracting and observing. The CRUD screens deliberately *skip* the
+ViewModel and use `@State` + `.task` calling a service directly — a list that
+fetches rows and renders them gains nothing from an extra layer except a file
+to keep in sync. Dogmatic one-ViewModel-per-screen was rejected as ceremony.
+
+**Clean Architecture — the spirit, not the ceremony.** What was kept is the
+part of Clean that pays for itself: the **dependency rule**. `TallystitchCore`
+(entities + domain logic) is the innermost layer and depends on nothing — no
+SwiftUI, no Supabase — and everything points inward toward it. What was
+deliberately *not* adopted: Use-Case/Interactor objects and protocol-abstracted
+repositories. At this app's size, every boundary protocol would have exactly
+one implementation — speculative abstraction that adds indirection without
+adding options. Clean's known weak spot is where that ceremony concentrates:
+the composition root, which ends up knowing every concrete type in the system,
+and (with a DI container) moves wiring errors from compile time to runtime.
+This app keeps its composition root tiny and compile-time-checked — two stores
+injected via `.environmentObject` at the app entry — precisely by *not*
+abstracting every seam.
+
+**VIPER — no.** VIPER's Presenter/Interactor/Router split solves coordination
+problems of large UIKit codebases with many contributors. In SwiftUI the View
+already *is* a function of state, navigation is declarative, and this codebase
+has one author — VIPER here would be five files per screen answering a question
+nobody asked.
+
+**The trade consciously accepted:** skipping repository protocols means the
+service layer has no seam for mocks and is therefore untestable today (see
+*Known trade-offs*, item 1). The domain core — the part most likely to be
+wrong — is fully testable. If the app grows or gains contributors, introducing
+protocols **only at the data boundary** (not everywhere) is the planned first
+step, which would also make the "Clean" label fully earned rather than
+"inspired."
+
+---
+
 ## The iOS app — layers
 
 Pragmatic **MVVM over a Clean-inspired layering**, with a pure domain core.
