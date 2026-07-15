@@ -4,6 +4,10 @@ Native iOS client for Tallystitch, sharing the same Supabase backend as the
 web app and the (React Native) `tallystitch-mobile` app. iOS-only by design;
 built for best-in-class native feel.
 
+**→ See [ARCHITECTURE.md](ARCHITECTURE.md)** for the design rationale, the
+single-source-of-truth stock model, the security model, and the known
+trade-offs.
+
 > **Status:** Builds and runs on **Xcode 16 / iOS 16+**. The core domain logic
 > (`TallystitchCore`) is covered by XCTest; auth (password, magic link, and
 > password reset), the materials/products/sales CRUD, the dashboard, and
