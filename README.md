@@ -4,10 +4,12 @@ Native iOS client for Tallystitch, sharing the same Supabase backend as the
 web app and the (React Native) `tallystitch-mobile` app. iOS-only by design;
 built for best-in-class native feel.
 
-> **Status: scaffold.** Every source file is written and the core domain logic
-> is verified (see below), but the SwiftUI app has **not been built or run**
-> yet — see *Build requirements*. It's ready to open in Xcode 16 on a capable
-> Mac.
+> **Status:** Builds and runs on **Xcode 16 / iOS 16+**. The core domain logic
+> (`TallystitchCore`) is covered by XCTest; auth (password, magic link, and
+> password reset), the materials/products/sales CRUD, the dashboard, and
+> subscription gating are functional against the shared Supabase backend. Not
+> shipped to the App Store — CSV import and StoreKit billing are still on the
+> roadmap.
 
 ## What's here
 
@@ -88,6 +90,6 @@ Add to **Authentication → URL Configuration → Redirect URLs**:
 ## Not yet built (parity roadmap)
 
 - CSV import (web/RN have it)
-- Billing — RevenueCat + StoreKit 2 (the native SDK is more mature than RN's)
-- App icon artwork, launch screen polish, haptics
+- Billing — StoreKit 2 / RevenueCat (native SDK is more mature than RN's)
+- Launch-screen polish and haptics
 - TestFlight distribution via Xcode Cloud or a Mac CI runner
