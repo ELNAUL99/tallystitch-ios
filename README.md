@@ -6,7 +6,9 @@ built for best-in-class native feel.
 
 **→ See [ARCHITECTURE.md](ARCHITECTURE.md)** for the design rationale, the
 single-source-of-truth stock model, the security model, and the known
-trade-offs.
+trade-offs. **[docs/INTERNALS.md](docs/INTERNALS.md)** goes one level deeper:
+the mechanics of every moving part (triggers, RLS, PKCE, SwiftUI state,
+concurrency) plus two end-to-end traces.
 
 > **Status:** Builds and runs on **Xcode 16 / iOS 16+**. The core domain logic
 > (`TallystitchCore`) is covered by XCTest; auth (password, magic link, and

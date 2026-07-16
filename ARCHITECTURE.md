@@ -8,6 +8,10 @@ importantly, the trade-offs they carry.
 The guiding idea: **push the rules that must never be wrong into the database,
 and keep the clients thin.**
 
+*For the mechanism-level detail behind each decision — trigger semantics, RLS
+mechanics, the PKCE flow, SwiftUI state and concurrency, and two end-to-end
+traces — see [docs/INTERNALS.md](docs/INTERNALS.md).*
+
 ---
 
 ## The system
