@@ -155,6 +155,20 @@ app → `authStateChanges` emits `.passwordRecovery` → `AuthStore` sets
 `fullScreenCover` → `updatePassword` uses the recovery session to set a new
 password without knowing the old one.
 
+### Signup
+
+`signUp(email:password:)` sends the same `tallystitch://auth/callback`
+redirect. With email confirmation on, the server returns **no session** —
+the account exists but is unusable until the emailed confirm link is tapped,
+so the form shows "check your email" instead of navigating anywhere. The
+confirm link rides the same deep-link machinery as magic links; confirmation
+is not a special case.
+
+Why offer password *and* magic link: parity with web/RN (one auth story
+across three clients), and each covers the other's failure mode — the magic
+link rescues a forgotten password; the password works when email delivery is
+slow or rate-limited.
+
 ---
 
 ## 3. iOS app mechanics
@@ -230,6 +244,79 @@ see the *same* session).
 6. If the same account has the web app open: same RPC, same trigger — the
    two clients cannot race their way into inconsistent stock, because only
    the database ever computes it.
+
+### The client-side stock mirror — `StockMath`
+
+Section 1 said the stock rule lives in Postgres. Yet `TallystitchCore`
+ships `StockMath` — pure Swift reimplementations of the trigger math
+(`applyOrderLine`, `computeUnitCost`, `wouldOversell`, `marginPct`) carrying
+the package's heaviest test suite. Today the app only calls `marginPct`
+(product editor and product list); the deduction functions are used by **no
+view**. That is deliberate, not dead code:
+
+1. **Previews need the math without the write.** "What would importing this
+   CSV do to stock — would anything oversell?" must be answerable *before*
+   inserting a single row, and the database only computes stock as a side
+   effect of writes. The mirror is the preview engine for the roadmap CSV
+   importer, exactly the role the web's `stock.ts` plays there.
+2. **The database rule needs tests this repo can run.** A Postgres trigger
+   cannot be unit-tested from a Swift package. The mirror plus its tests is
+   an executable specification of the deduction rule — `verify.sh` checks it
+   with nothing but a compiler.
+
+The price is duplication that can drift, which is why the file header pins
+it to `tg_order_items_stock` and the migration it must stay aligned with.
+And the mirror is never trusted to *write* — authority stays in the
+database; the Swift copy only predicts.
+
+### Profile and the access gate
+
+`ProfileStore` fetches the `profiles` row once per sign-in, and everything
+reads from it: the currency in every formatter, the business name, the
+subscription fields. Hoisting it into one store (mirror of the RN
+`ProfileProvider`) means a settings edit calls `refresh()` once and the
+whole UI reflows together — the alternative is every screen re-querying and
+briefly disagreeing after an edit.
+
+The gate itself is two lines in core: `Access.hasAppAccess` — `active`
+always passes, `trialing` passes until `trial_ends_at`, everything else is
+locked. It lives in `TallystitchCore` and mirrors web/RN because a rule this
+consequential must not be re-derived per client; all three must agree about
+who is locked out.
+
+Note what the gate is and is not: `LockedView` is business enforcement, not
+security. A user who somehow bypassed it would still hit RLS and see only
+their own rows. Data protection stays in the database; the gate only decides
+whether the app is *usable*.
+
+### Sample data — a demo that runs through the real pipeline
+
+Settings can load a demo workshop (a candle + soap maker, the same dataset
+as web/RN). `SampleData.load` inserts materials → products + recipes →
+backdated orders and their items, every row tagged `is_sample = true`. The
+item inserts fire the **real** stock triggers, so the sample sales deduct
+stock exactly as real ones would — the demo exercises the actual pipeline,
+not a mock of it.
+
+Two decisions worth naming:
+
+- **Direct inserts, not the RPC.** `create_order_with_items` exists to make
+  a *user-initiated* sale atomic; the demo loader needs backdated
+  `order_date`s and the `is_sample` tag, and a partially-loaded demo is an
+  annoyance, not a corruption risk — so plain inserts keep it simple. (This
+  also shows the RPC's server-computed gross is a property of that path, not
+  a table constraint: the loader writes `gross_amount` itself.)
+- **A flag, not a sandbox.** Tagging rows instead of using a separate demo
+  account means the demo renders in the user's real dashboard, and removal
+  is three deletes filtered on the flag. Their order — orders → products →
+  materials — is forced by the FK design in section 1: RESTRICT forbids
+  deleting products that have sales or materials still in recipes, so orders
+  must go first; and deleting them fires the reversal trigger, so clearing
+  the demo restores stock as a side effect.
+
+Why it exists at all: an empty dashboard teaches nothing. The demo hands a
+new user a working system to poke at — real triggers, real margins — and
+one tap removes it without touching anything they created themselves.
 
 ---
 
