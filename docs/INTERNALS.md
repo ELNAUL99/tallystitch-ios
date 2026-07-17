@@ -361,3 +361,62 @@ one tap removes it without touching anything they created themselves.
   `unit_cost_snapshot`, so the headline is revenue-focused; full
   cost-of-goods aggregation belongs in a Postgres view/RPC rather than
   shipping rows to the client — see *Known trade-offs* in ARCHITECTURE.md.
+
+---
+
+## 6. Security posture
+
+### Threat model in one paragraph
+
+The client binary is assumed compromised: anything in an `.ipa` can be
+extracted, so no secret in the app is a secret and no check in the app is
+enforcement. Every rule that matters — who sees which rows (RLS, §1), what
+a sale may write (the RPC's identity guard and server-computed gross, §1),
+who may be deleted (the Edge Function, §5) — lives on the server side of
+that boundary. The client's own protections (PKCE, keychain, §2) exist to
+protect the *user's session on their device*, not to protect the backend
+from the client.
+
+### Client-side facts not covered elsewhere
+
+- **Transport:** default App Transport Security applies — no
+  `NSAllowsArbitraryLoads` exception exists, and no `http://` URL appears
+  anywhere in app code. All traffic is HTTPS.
+- **No token or PII logging:** app code contains no `print`; the one
+  debug print (failed deep links) was removed when that path gained a
+  user-facing alert.
+- **Redirect allow-listing is server-enforced.** The magic-link
+  `redirect_to` is only honored if it matches the Supabase project's
+  Redirect URLs allow-list; otherwise the server silently falls back to
+  the trusted Site URL. This is open-redirect prevention, and it is not
+  negotiable from the client — rewriting the parameter in the URL does
+  nothing (verified empirically: until `tallystitch://auth/callback` was
+  whitelisted, every link landed on the web app instead). The README's
+  dashboard setup step exists because of this.
+- **Email sending is rate-limited** by Supabase (a few per hour on the
+  built-in sender) — abuse throttling that also bites during development;
+  production needs custom SMTP regardless.
+
+### Deliberately not done (and why), plus known gaps
+
+- **Custom URL scheme, not Universal Links.** Any installed app can claim
+  `tallystitch://` — scheme hijacking is real. PKCE is the mitigation: a
+  hijacker receives a code it cannot exchange (no verifier, §2). Universal
+  Links (server-verified domain association) are the hardening step when
+  the stakes rise; the scheme was chosen for zero server dependency.
+- **No certificate pinning.** Pinning against a managed backend whose
+  certificates rotate on its own schedule trades a narrow gain (defense
+  against a compromised CA) for a broad risk (self-inflicted outage on
+  every rotation). ATS + HTTPS is the accepted baseline here; revisit if
+  the app ever carries higher-sensitivity data than a maker's inventory.
+- **RLS coverage is not CI-enforced** — the sharp edge from §1. Today it
+  is discipline plus Supabase's advisors; at team scale a schema check
+  belongs in CI.
+- **No local app lock** (Face ID / passcode on open). The keychain
+  protects the session at rest, but an unlocked, handed-over phone is
+  inside the perimeter. A biometric gate is cheap to add if users ask.
+- **Client-side validation is UX, not security.** Quantity parsing, date
+  capping, empty-name checks make the form pleasant; every one of them is
+  re-enforced (or made irrelevant) server-side. The reverse — trusting
+  client validation — is the classic mistake this architecture avoids by
+  construction.
