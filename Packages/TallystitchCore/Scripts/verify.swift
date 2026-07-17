@@ -86,6 +86,17 @@ check(Formatting.percent(0.75) == "75.0%", "percent 75.0%")
 check(Formatting.currency(nil) == "—", "currency nil is dash")
 check(Formatting.currency(12.5, code: "USD").contains("12"), "currency contains digits")
 
+print("Access gate")
+let inADay = Date().addingTimeInterval(86_400)
+let aDayAgo = Date().addingTimeInterval(-86_400)
+check(Access.hasAppAccess(status: .active, trialEndsAt: aDayAgo), "active passes even with expired trial")
+check(Access.hasAppAccess(status: .trialing, trialEndsAt: inADay), "trialing passes before trial end")
+check(!Access.hasAppAccess(status: .trialing, trialEndsAt: aDayAgo), "trialing locked after trial end")
+check(!Access.hasAppAccess(status: .canceled, trialEndsAt: inADay), "canceled locked despite future trial date")
+check(!Access.hasAppAccess(status: .pastDue, trialEndsAt: inADay), "past_due locked despite future trial date")
+check(Access.trialDaysRemaining(trialEndsAt: Date().addingTimeInterval(0.5 * 86_400)) == 1, "half a day left ceils to 1")
+check(Access.trialDaysRemaining(trialEndsAt: aDayAgo) == 0, "expired trial clamps to 0 days")
+
 print("")
 if failures == 0 { print("ALL CHECKS PASSED") }
 else { print("\(failures) CHECK(S) FAILED"); exit(1) }
