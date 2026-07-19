@@ -13,9 +13,7 @@ cd "$(dirname "$0")/.."
 tmp_main="$(mktemp -d)/main.swift"
 cp Scripts/verify.swift "$tmp_main"
 
+# Compile every core source (glob, so new files can't be silently skipped).
 out="$(mktemp -d)/ts_verify"
-swiftc Sources/TallystitchCore/StockMath.swift \
-       Sources/TallystitchCore/Models.swift \
-       Sources/TallystitchCore/Formatting.swift \
-       "$tmp_main" -o "$out"
+swiftc Sources/TallystitchCore/*.swift "$tmp_main" -o "$out"
 "$out"

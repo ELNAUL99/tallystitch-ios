@@ -97,6 +97,21 @@ check(!Access.hasAppAccess(status: .pastDue, trialEndsAt: inADay), "past_due loc
 check(Access.trialDaysRemaining(trialEndsAt: Date().addingTimeInterval(0.5 * 86_400)) == 1, "half a day left ceils to 1")
 check(Access.trialDaysRemaining(trialEndsAt: aDayAgo) == 0, "expired trial clamps to 0 days")
 
+print("DashboardMath")
+let emptySummary = DashboardMath.aggregate([])
+check(emptySummary.revenue == 0 && emptySummary.byProduct.isEmpty, "empty input aggregates to zero")
+let grouped = DashboardMath.aggregate([
+    .init(productName: "Candle", quantity: 2, unitSalePrice: 22),
+    .init(productName: "Soap", quantity: 1, unitSalePrice: 9.5),
+    .init(productName: "Candle", quantity: 1, unitSalePrice: 22),
+])
+check(approx(grouped.revenue, 75.5), "revenue sums across lines")
+check(grouped.byProduct.count == 2 && grouped.byProduct[0].name == "Candle" && grouped.byProduct[0].units == 3,
+      "groups by product, sorted by revenue desc")
+let unknown = DashboardMath.aggregate([.init(productName: nil, quantity: 2, unitSalePrice: 10)])
+check(unknown.byProduct.first?.name == "Unknown" && approx(unknown.revenue, 20),
+      "nil product name groups under Unknown without dropping revenue")
+
 print("")
 if failures == 0 { print("ALL CHECKS PASSED") }
 else { print("\(failures) CHECK(S) FAILED"); exit(1) }
