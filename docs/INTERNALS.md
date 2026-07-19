@@ -86,6 +86,14 @@ plain-language messages ("this material is used in a recipe…") and rethrows
 everything else. Catching broadly would mask network or RLS failures behind
 a misleading explanation.
 
+**An honest caveat on "exactly":** the *intent* is precise, but the Swift
+*detection* is not — `isForeignKeyViolation` string-matches the error's
+description for `"23503"` or `"foreign key"`, because the SDK doesn't
+surface a typed SQLSTATE through this path. That's fragile by construction:
+an SDK that reworded its error descriptions would silently break the
+translation (falling back to the raw message — degraded UX, not corruption).
+A typed error check would be strictly better the day the SDK offers one.
+
 ### Two deliberate denormalizations
 
 1. **`products.unit_cost_cached`** — derivable from the recipe, but
@@ -318,6 +326,27 @@ Why it exists at all: an empty dashboard teaches nothing. The demo hands a
 new user a working system to poke at — real triggers, real margins — and
 one tap removes it without touching anything they created themselves.
 
+### Onboarding — a wizard driven by data, not by wizard state
+
+The first-run flow is four gated steps: workshop basics → one material →
+one product recipe → one sale. Three mechanics worth naming:
+
+- **Completion is derived, not recorded.** Each step's "done" state comes
+  from reality — `hasBasics` reads the profile, and steps 2–4 use
+  **head-only count queries** (`select("*", head: true, count: .exact)`),
+  which return a row count without shipping any rows. There is no separate
+  "wizard progress" state to keep in sync with the database; returning from
+  "add a material" ticks the step because the material now *exists*.
+- **Steps gate on the previous one** (`disabled: counts.materials == 0` and
+  so on) because each is meaningless without its predecessor — you can't
+  build a recipe with no materials, or record a sale with no product. The
+  gating encodes the domain's own dependency order.
+- **Both "finish" and "skip" call `markOnboardingComplete`.** The wizard is
+  a teaching aid, not a gate — a user who skips must never be trapped back
+  into it on next launch. RootView's routing sends only accounts with *no
+  business name and no completion timestamp* here, so it appears exactly
+  once unless the user reopens it from Settings.
+
 ---
 
 ## 4. Build system
@@ -420,3 +449,46 @@ from the client.
   re-enforced (or made irrelevant) server-side. The reverse — trusting
   client validation — is the classic mistake this architecture avoids by
   construction.
+
+---
+
+## 7. Testing strategy
+
+The tests are not spread evenly — they're concentrated where the doc above
+flags risk, and absent where the architecture currently forbids them. That
+placement is the strategy.
+
+### What is tested, and why exactly these things
+
+All 33 XCTest cases live in `TallystitchCore` (with the high-value subset
+mirrored in `Scripts/verify.swift` for machines without XCTest — see §4):
+
+| Suite | Cases | What it protects |
+|---|---|---|
+| `StockMathTests` | 13 | The deduction/reversal/oversell math — the correctness risk of the whole product, and the executable specification the Postgres trigger must agree with (§3, "the client-side stock mirror"). Includes an explicit no-mutation test, because the projection design depends on input immutability. |
+| `ModelsDecodingTests` | 8 | The `Codable` boundary. §3 calls this seam out as *runtime-checked, not compile-checked* — a renamed column with a stale `CodingKey` fails only at decode time. These tests pin the snake_case→camelCase contract so a drift fails in CI, not in a user's hands. |
+| `AccessTests` | 6 | `hasAppAccess` / `trialDaysRemaining` — two small functions that gate the entire app. Edge cases chosen deliberately: canceled-with-future-trial-date (status must win over date), the ceil-to-1 boundary on remaining days, expiry clamping to zero. |
+| `FormattingTests` | 6 | Locale-independent number/percent behavior; currency asserts only shape, not exact strings, because currency rendering is locale-dependent by design. |
+
+The pattern: **tests sit where the doc admits fragility** (the decoding
+boundary), **where the consequence is highest** (stock math, the access
+gate), and **where the code is pure** — every tested function is
+deterministic, dependency-free, and needs no simulator.
+
+### What is deliberately not tested, and what that costs
+
+The **service layer has no tests** — and can't, as built. Services are
+static functions reaching for a global `supabase` client (ARCHITECTURE.md,
+*Known trade-offs* #1), so there is no seam to substitute a fake. The
+result is a sharp line: everything below the network boundary is tested;
+everything touching it is verified only by use.
+
+Also untested: the SwiftUI views (thin by design; the logic they'd need
+tested was pushed into core or the database precisely so it could be
+tested elsewhere) and the Postgres trigger itself from this repo — the
+Swift mirror plus its suite serves as the trigger's executable spec, which
+is a mitigation for drift, not a proof (see §3).
+
+The first move to widen coverage is the same one that would earn the full
+"Clean" label: a protocol at the data boundary, injected, mocked in tests.
+Targeted injection where mocks are needed — not abstraction everywhere.
