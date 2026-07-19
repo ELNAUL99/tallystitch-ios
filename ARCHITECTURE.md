@@ -189,8 +189,12 @@ Written down deliberately — these are conscious shortcuts, not blind spots.
    convenient but it makes the service layer untestable — services grab a live
    client, so there's no seam to inject a fake. That's exactly why the core has
    tests and the services don't. The fix is protocol-based dependency injection:
-   define repository protocols, inject them, pass mocks in tests. This is also
-   the single change that would make the "Clean Architecture" claim defensible.
+   define repository protocols, inject them, pass mocks in tests.
+   *First step taken:* the dashboard's data boundary is now a protocol
+   (`DashboardDataProviding`) injected into its ViewModel, its aggregation
+   logic moved into the tested core (`DashboardMath`), and the ViewModel has
+   mock-based tests. The remaining services (Materials/Products/Sales/Account)
+   still lack seams — the same move applies to them next.
 2. **No pagination.** `SalesService.list(limit: 200)` is a placeholder, not a
    design. A user with years of orders wouldn't see most of them.
 3. **Dashboard aggregates client-side.** It fetches rows and folds them in the
