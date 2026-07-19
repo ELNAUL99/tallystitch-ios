@@ -4,47 +4,46 @@ import TallystitchCore
 @MainActor
 final class DashboardViewModel: ObservableObject {
     @Published var revenue = 0.0
+    // Why cogs stays 0 here: unit cost snapshot isn't selected by the lean
+    // mobile query; revenue is the headline. (Cost-of-goods belongs in a
+    // Postgres view/RPC — see Known trade-offs.)
     @Published var cogs = 0.0
-    @Published var byProduct: [ProductAgg] = []
+    @Published var byProduct: [DashboardMath.ProductAgg] = []
     @Published var lowStock: [TallystitchCore.Material] = []
     @Published var loaded = false
     @Published var error: String?
 
-    struct ProductAgg: Identifiable { let id = UUID(); let name: String; var units: Double; var revenue: Double; var cost: Double }
+    private let data: DashboardDataProviding
+
+    // Injected data boundary: production uses the default; tests pass a fake.
+    // The default parameter keeps the call site (`DashboardViewModel()`)
+    // unchanged.
+    init(data: DashboardDataProviding = LiveDashboardData()) {
+        self.data = data
+    }
 
     func load() async {
         error = nil
         do {
-            let since = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-30 * 86_400))
-            async let orders: [SalesService.SaleRow] = supabase
-                .from("orders")
-                .select("id, source, external_order_id, order_date, gross_amount, order_items(quantity, unit_sale_price, products(name))")
-                .gte("order_date", value: since)
-                .execute().value
-            async let materials: [TallystitchCore.Material] = supabase
-                .from("materials").select().order("stock_on_hand", ascending: true).execute().value
-
+            let since = Date().addingTimeInterval(-30 * 86_400)
+            async let orders = data.fetchOrders(since: since)
+            async let materials = data.fetchMaterials()
             let (ordersResult, materialsResult) = try await (orders, materials)
 
-            var rev = 0.0, cost = 0.0
-            var agg: [String: ProductAgg] = [:]
-            for o in ordersResult {
-                for it in o.orderItems {
-                    let lineRev = it.quantity * it.unitSalePrice
-                    // unit cost snapshot isn't selected here; revenue is what matters
-                    // for the headline. (Cost-of-goods uses the snapshot in a fuller
-                    // query — kept lean for the mobile dashboard.)
-                    rev += lineRev
-                    let name = it.products?.name ?? "Unknown"
-                    var entry = agg[name] ?? ProductAgg(name: name, units: 0, revenue: 0, cost: 0)
-                    entry.units += it.quantity
-                    entry.revenue += lineRev
-                    agg[name] = entry
+            // Flatten SDK rows into pure lines; the fold itself lives (and is
+            // tested) in TallystitchCore.DashboardMath.
+            let lines = ordersResult.flatMap { order in
+                order.orderItems.map {
+                    DashboardMath.Line(
+                        productName: $0.products?.name,
+                        quantity: $0.quantity,
+                        unitSalePrice: $0.unitSalePrice
+                    )
                 }
             }
-            revenue = rev
-            cogs = cost
-            byProduct = agg.values.sorted { $0.revenue > $1.revenue }
+            let summary = DashboardMath.aggregate(lines)
+            revenue = summary.revenue
+            byProduct = summary.byProduct
             lowStock = materialsResult.filter(\.isLowStock)
         } catch {
             self.error = error.localizedDescription
@@ -75,7 +74,8 @@ struct DashboardView: View {
                     if vm.byProduct.isEmpty {
                         Text("No sales in this period yet.").foregroundStyle(Palette.ink500).padding(.vertical, 8)
                     } else {
-                        ForEach(vm.byProduct) { row in
+                        // Grouping guarantees unique names, so name is a valid identity.
+                        ForEach(vm.byProduct, id: \.name) { row in
                             HStack {
                                 VStack(alignment: .leading) {
                                     Text(row.name).font(.body.weight(.medium))

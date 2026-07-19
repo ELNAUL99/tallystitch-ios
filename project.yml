@@ -68,3 +68,17 @@ targets:
           - CFBundleURLName: com.tallystitch.app
             CFBundleURLSchemes:
               - tallystitch
+    scheme:
+      testTargets:
+        - TallystitchTests
+
+  # App-target unit tests. Exists since the dashboard's data boundary became
+  # injectable (DashboardDataProviding) — the first seam that makes anything
+  # above TallystitchCore mockable.
+  TallystitchTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: TallystitchTests
+    dependencies:
+      - target: Tallystitch
