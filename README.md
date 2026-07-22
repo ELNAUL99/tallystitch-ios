@@ -4,7 +4,8 @@ Native iOS client for Tallystitch, sharing the same Supabase backend as the
 web app and the (React Native) `tallystitch-mobile` app. iOS-only by design;
 built for best-in-class native feel.
 
-**→ See [ARCHITECTURE.md](ARCHITECTURE.md)** for the design rationale, the
+**In a hurry? [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md)** is the five-minute
+tour. **[ARCHITECTURE.md](ARCHITECTURE.md)** has the design rationale, the
 single-source-of-truth stock model, the security model, and the known
 trade-offs. **[docs/INTERNALS.md](docs/INTERNALS.md)** goes one level deeper:
 the mechanics of every moving part (triggers, RLS, PKCE, SwiftUI state,
